@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Payments</title>
+</head>
+
+    <form>
+        <input type="text" name="amount" placeholder="Amount">
+        <input type="text" name="currency" placeholder="Currency">
+        <div id="card-element"></div>
+        <button type="button" id="pay-button">Pay</button>
+    </form>
+    
+</body>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+  const stripe = Stripe('pk_test_51MiUdoGx7WvS8Y8QPsM7IImIhobagdxQe9Nrq2M2sl6Bmdjoxwqxgxparnu6nrCOaLYZ5ccMyAEk94zgdtkqjmhO00JSEqWL8D');
+  
+  const elements = stripe.elements();
+  const card = elements.create('card');
+
+  // Mount the card element to the card-element div
+  card.mount('#card-element');
+
+  let form = document.querySelector('form');
+  let payButton = document.getElementById('pay-button');
+
+  payButton.addEventListener('click', async function (event) {
+    event.preventDefault();
+    payButton.disabled = true;
+
+    // Create a payment intent on the backend using the form data
+    try {
+      const response = await fetch('/payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: form.amount.value,
+          currency: form.currency.value
+        })
+      });
+      const data = await response.json();
+
+      // Confirm the payment with the client secret
+      const result = await stripe.confirmCardPayment(data.client_secret, {
+        payment_method: {
+          card: card
+        }
+      });
+
+      if (result.error) {
+        // Show error message to the user
+        alert(result.error.message);
+      } else {
+        // Show success message to the user
+        alert('Payment successful!');
+      }
+    } catch (error) {
+      // Show error message to the user
+      alert(error.message);
+    }
+
+    payButton.disabled = false;
+  });
+</script>
+</html>
